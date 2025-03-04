@@ -22,6 +22,20 @@ jobs:
     - name: Generate key
       run: php artisan key:generate
     
+    - name: Create .env file on EC2
+      run: |
+        echo "APP_NAME=Laravel" > .env
+        echo "APP_ENV=production" >> .env
+        echo "APP_KEY=" >> .env
+        echo "APP_DEBUG=false" >> .env
+        echo "APP_URL=http://your-ec2-public-ip" >> .env
+        echo "DB_CONNECTION=mysql" >> .env
+        echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
+        echo "DB_PORT=3306" >> .env
+        echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
+        echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
+        echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+    
     - name: Deploy to EC2
       env:
         PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -33,6 +47,7 @@ jobs:
         scp -o StrictHostKeyChecking=no -i private_key -r . $USER@$HOST:/var/www/laravel-api
         ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST << EOF
           cd /var/www/laravel-api
+          cp .env.example .env  # Ensure .env is copied on the server
           composer install
           php artisan migrate
           php artisan config:clear
