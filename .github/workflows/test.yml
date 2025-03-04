@@ -19,10 +19,7 @@ jobs:
     - name: Install Dependencies
       run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
     
-    - name: Generate key
-      run: php artisan key:generate
-    
-    - name: Create .env file on EC2
+    - name: Create .env file
       run: |
         echo "APP_NAME=Laravel" > .env
         echo "APP_ENV=production" >> .env
@@ -36,6 +33,9 @@ jobs:
         echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
         echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
     
+    - name: Generate app key
+      run: php artisan key:generate
+    
     - name: Deploy to EC2
       env:
         PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -47,7 +47,7 @@ jobs:
         scp -o StrictHostKeyChecking=no -i private_key -r . $USER@$HOST:/var/www/laravel-api
         ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST << EOF
           cd /var/www/laravel-api
-          cp .env.example .env  # Ensure .env is copied on the server
+          cp .env.example .env  # Ensure .env is copied on the server if not already
           composer install
           php artisan migrate
           php artisan config:clear
