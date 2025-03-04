@@ -52,14 +52,22 @@ jobs:
         # Ensure target directory exists
         ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo mkdir -p /var/www/laravel-api && sudo chown $USER:$USER /var/www/laravel-api"
         
-        # Copy files to EC2
-        scp -o StrictHostKeyChecking=no -i private_key -r . $USER@$HOST:/var/www/laravel-api
+        # Use rsync to avoid copying .git and other unnecessary files
+        rsync -avz --exclude='.git' --exclude='node_modules' --exclude='storage' -e "ssh -i private_key" ./ $USER@$HOST:/var/www/laravel-api
+        
+        # Ensure .env is set up
         ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST << EOF
           cd /var/www/laravel-api
-          cp .env.example .env  # Ensure .env is copied on the server
+          if [ ! -f .env ]; then
+            cp .env.example .env
+          fi
           composer install
           php artisan migrate
           php artisan config:clear
           php artisan cache:clear
           sudo systemctl restart nginx
         EOF
+        
+    - name: Set permissions for web server
+      run: |
+        ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo chown -R www-data:www-data /var/www/laravel-api && sudo chmod -R 775 /var/www/laravel-api"
