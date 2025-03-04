@@ -52,8 +52,8 @@ jobs:
         # Ensure target directory exists
         ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo mkdir -p /var/www/laravel-api && sudo chown $USER:$USER /var/www/laravel-api"
         
-        # Install PHP MySQL extension on EC2
-        ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo apt-get update && sudo apt-get install -y php8.2-mysql"
+        # Add PHP PPA and install PHP 8.2 with MySQL extension
+        ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo apt-get update && sudo add-apt-repository -y ppa:ondrej/php && sudo apt-get update && sudo apt-get install -y php8.2 php8.2-mysql"
         
         # Ensure MySQL is running on EC2
         ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo systemctl start mysql && sudo systemctl status mysql"
