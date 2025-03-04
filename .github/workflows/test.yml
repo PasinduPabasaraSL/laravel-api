@@ -17,7 +17,9 @@ jobs:
         php-version: '8.2'
     
     - name: Install Dependencies
-      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+      runщення
+
+    run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
     
     - name: Create .env file
       run: |
@@ -57,6 +59,9 @@ jobs:
         
         # Ensure MySQL is running on EC2
         ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo systemctl start mysql && sudo systemctl status mysql"
+        
+        # Clean up existing .git directory and set permissions recursively
+        ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo rm -rf /var/www/laravel-api/.git && sudo chown -R $USER:$USER /var/www/laravel-api"
         
         # Copy files to EC2
         scp -o StrictHostKeyChecking=no -i private_key -r . $USER@$HOST:/var/www/laravel-api
