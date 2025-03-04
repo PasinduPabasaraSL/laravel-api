@@ -42,12 +42,18 @@ jobs:
         HOST: ${{ secrets.EC2_HOST }}
         USER: ubuntu
       run: |
+        # Save private key and set permissions
         echo "$PRIVATE_KEY" > private_key
         chmod 600 private_key
+        
+        # Test SSH connection
+        ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "echo 'SSH connection successful'"
+        
+        # Copy files to EC2
         scp -o StrictHostKeyChecking=no -i private_key -r . $USER@$HOST:/var/www/laravel-api
         ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST << EOF
           cd /var/www/laravel-api
-          cp .env.example .env  # Ensure .env is copied on the server if not already
+          cp .env.example .env  # Ensure .env is copied on the server
           composer install
           php artisan migrate
           php artisan config:clear
