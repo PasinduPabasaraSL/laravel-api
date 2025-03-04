@@ -1,62 +1,21 @@
-name: Laravel API Deploy
-
-on:
-  push:
-    branches: [ "main" ]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+- name: Deploy to EC2
+  env:
+    PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+    HOST: ${{ secrets.EC2_HOST }}
+    USER: ubuntu
+  run: |
+    # Save private key and set permissions
+    echo "$PRIVATE_KEY" > private_key
+    chmod 600 private_key
     
-    steps:
-    - uses: actions/checkout@v3
+    # Test SSH connection
+    ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "echo 'SSH connection successful'"
     
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
+    # Ensure the target directory exists and set permissions
+    ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "
+      sudo mkdir -p /var/www/laravel-api && 
+      sudo chown $USER:$USER /var/www/laravel-api
+    "
     
-    - name: Install Dependencies
-      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-    
-    - name: Create .env file
-      run: |
-        echo "APP_NAME=Laravel" > .env
-        echo "APP_ENV=production" >> .env
-        echo "APP_KEY=" >> .env
-        echo "APP_DEBUG=false" >> .env
-        echo "APP_URL=http://your-ec2-public-ip" >> .env
-        echo "DB_CONNECTION=mysql" >> .env
-        echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
-        echo "DB_PORT=3306" >> .env
-        echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
-        echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
-        echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-    
-    - name: Generate app key
-      run: php artisan key:generate
-    
-    - name: Deploy to EC2
-      env:
-        PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-        HOST: ${{ secrets.EC2_HOST }}
-        USER: ubuntu
-      run: |
-        # Save private key and set permissions
-        echo "$PRIVATE_KEY" > private_key
-        chmod 600 private_key
-        
-        # Test SSH connection
-        ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "echo 'SSH connection successful'"
-        
-        # Copy files to EC2
-        scp -o StrictHostKeyChecking=no -i private_key -r . $USER@$HOST:/var/www/laravel-api
-        ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST << EOF
-          cd /var/www/laravel-api
-          cp .env.example .env  # Ensure .env is copied on the server
-          composer install
-          php artisan migrate
-          php artisan config:clear
-          php artisan cache:clear
-          sudo systemctl restart nginx
-        EOF
+    # Copy files to EC2
+    scp -o StrictHostKeyChecking=no -i private_key -r . $USER@$HOST:/var/www/laravel-api
