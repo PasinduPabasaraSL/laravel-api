@@ -36,7 +36,7 @@ class ProductController extends Controller
         return response()->json($product);
     }
 
-    public function update(Request $request, Product $product)
+    public function update(Request $request, Product $product): JsonResponse
     {
         $validatedData = $request->validate([
             'name' => 'required|max:255',
@@ -52,7 +52,7 @@ class ProductController extends Controller
         ]);
     }
 
-    public function destroy(Product $product)
+    public function destroy(Product $product): JsonResponse
     {
         if (!$product) {
             return response()->json([
