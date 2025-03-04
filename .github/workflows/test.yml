@@ -52,22 +52,23 @@ jobs:
         # Ensure target directory exists
         ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo mkdir -p /var/www/laravel-api && sudo chown $USER:$USER /var/www/laravel-api"
         
-        # Use rsync to avoid copying .git and other unnecessary files
-        rsync -avz --exclude='.git' --exclude='node_modules' --exclude='storage' -e "ssh -i private_key" ./ $USER@$HOST:/var/www/laravel-api
+        # Install PHP MySQL extension on EC2
+        ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo apt-get update && sudo apt-get install -y php8.2-mysql"
         
-        # Ensure .env is set up
+        # Ensure MySQL is running on EC2
+        ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo systemctl start mysql && sudo systemctl status mysql"
+        
+        # Copy files to EC2
+        scp -o StrictHostKeyChecking=no -i private_key -r . $USER@$HOST:/var/www/laravel-api
         ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST << EOF
           cd /var/www/laravel-api
-          if [ ! -f .env ]; then
-            cp .env.example .env
-          fi
+          cp .env.example .env  # Ensure .env is copied on the server
           composer install
           php artisan migrate
           php artisan config:clear
           php artisan cache:clear
           sudo systemctl restart nginx
+          
+          # Debug NGINX failure if it occurs
+          sudo systemctl status nginx.service || journalctl -xeu nginx.service
         EOF
-        
-    - name: Set permissions for web server
-      run: |
-        ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "sudo chown -R www-data:www-data /var/www/laravel-api && sudo chmod -R 775 /var/www/laravel-api"
