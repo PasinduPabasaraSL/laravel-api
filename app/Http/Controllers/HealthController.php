@@ -10,7 +10,7 @@ class HealthController extends Controller
     {
         return response()->json([
             'status' => 'success',
-            'message' => 'Server is up and running'
+            'message' => 'Server is up and running.This is Service Check'
         ], 200);
     }
 }
